@@ -40,7 +40,7 @@ module VGA_driver
         end
     end
 
-    always_ff @(posedge clk) begin
+    always_ff @(posedge clock_162) begin
         // NEXYS 4 buttons are HIGH when pushed
         if (rst) begin
             row <= 0;
