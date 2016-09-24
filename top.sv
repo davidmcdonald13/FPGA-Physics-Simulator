@@ -2,19 +2,15 @@
 // will this become an issue?
 module top
    (input logic BTND,
-    input logic CLK_162,
-    output logic HYSNC, VSYNC,
-    output logic RED0, RED1, RED2, RED3,
-    output logic BLU0, BLU1, BLU2, BLU3,
-    output logic GRN0, GRN1, GRN2, GRN3);
+    input logic CLK100MHZ,
+    output logic VGA_HS, VGA_VS,
+    output logic [3:0] VGA_R, VGA_B, VGA_G);
+    
+    logic clk_out1, locked;
+    
+    clk_wiz_0 clk(.CLK100MHZ(CLK100MHZ), .clk_out1(clk_out1), .reset(BTND), .locked(locked));
 
-    logic [3:0] red, green, blue;
-
-    assign red = {RED3, RED2, RED1, RED0};
-    assign green = {GRN3, GRN2, GRN1, GRN0};
-    assign blue = {BLU3, BLU2, BLU1, BLU0};
-
-    VGA_driver vga(.clock_162(CLK_162), .rst(BTND), .HSYNC(HSYNC),
-                   .VSYNC(VSYNC), .RED(red), .GREEN(green), .BLUE(blue));
+    VGA_driver vga(.clock_162(clk_out1), .rst(BTND), .HSYNC(VGA_HS),
+                   .VSYNC(VGA_VS), .RED(VGA_R), .GREEN(VGA_G), .BLUE(VGA_B));
 
 endmodule: top
