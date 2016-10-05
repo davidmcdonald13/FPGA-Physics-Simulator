@@ -11,33 +11,59 @@ module range_check
 endmodule: range_check
 
 module pixelArray
-   (input  logic [11:0] col,
-    input  logic [10:0] row,
-    output logic [3:0] red, blue, green);
+   (output logic [599:0][1599:0] pixels_top, pixels_bottom);
+   
+    logic [1599:0] zero;
     
-    always_comb begin
-        red = 4'd0;
-        blue = 4'd0;
-        green = 4'd0;
-        if (row < 11'd300) begin
-            red = 4'hf;
-        end
-        else if (row < 11'd600) begin
-            blue = 4'hf;
-        end
-        else if (row < 11'd900) begin
-            green = 4'hf;
-        end
-        else begin
-            red = 4'hf;
-            blue = 4'hf;
-            red = 4'hf;
-        end
-    end
+    assign zero = 1599'd0;
+   
+    genvar i;
+    generate
+        for (i = 0; i < 600; i++) begin: f1
+            assign pixels_top[i] = zero;
+            assign pixels_bottom[i] = ~zero;
+         end
+     endgenerate
+     
 endmodule: pixelArray
+
+module color_lookup
+   (input logic [126:0][126:0] sprite,
+    input logic [3:0][10:0] sprite_row,
+    input logic [10:0] row,
+    input logic [3:0][11:0] sprite_col,
+    input logic [11:0] col,
+    output logic [3:0] red, green, blue);
+    
+    logic is_sprite;
+    logic[3:0] index;
+    
+    assign is_sprite = index[3] | index[2] | index[1] | index[0];
+    assign red = is_sprite ? 4'd0 : 4'hf;
+    assign blue = 4'd0;
+    assign green = is_sprite ? 4'hf : 4'd0;
+    
+    genvar i;
+    generate
+        for (i = 0; i < 4; i++) begin: f1
+            always_comb begin
+                index[i] = 0;
+                if (col >= sprite_col[i] - 12'd63 && col <= sprite_col[i] + 12'd63) begin
+                    if (row >= sprite_row[i] - 12'd63 && row <= sprite_row[i] + 12'd63) begin
+                        index[i] = sprite[row - sprite_row[i] + 12'd63][col - sprite_col[i] + 12'd63];
+                    end
+                end
+            end
+        end
+    endgenerate
+    
+endmodule: color_lookup 
 
 module VGA_driver
    (input logic clock_162, rst,
+    input logic [126:0][126:0] sprite,
+    input logic [3:0][10:0] sprite_row,
+    input logic [3:0][11:0] sprite_col,
     output logic [3:0] RED, GREEN, BLUE,
     output logic HSYNC, VSYNC);
 
@@ -53,18 +79,17 @@ module VGA_driver
     range_check #(12) hv(col, 12'd560, 12'd2159, hor_visible);
     range_check #(11) vv(row, 11'd50, 11'd1249, vert_visible);
     
-    pixelArray pa(.col(col - 12'd560), .row(row - 11'd50), .red(red_value), .green(green_value), .blue(blue_value));
-    /*assign red_value = 4'hf;
-    assign blue_value = 4'hf;
-    assign green_value = 4'hf;*/
-
-    //assign visible = hor_visible & vert_visible;
+    color_lookup cl(.sprite(sprite), .red(red_value), .green(green_value), .blue(blue_value),
+                    .sprite_row(sprite_row), .sprite_col(sprite_col), .row(row - 11'd50), .col(col - 12'd560));
+   
     assign HSYNC = ~HS_l;
     assign VSYNC = ~VS_l;
     
-    assign RED = (hor_visible & vert_visible) ? red_value : 4'd0;
-    assign BLUE = (hor_visible & vert_visible) ? blue_value : 4'd0;
-    assign GREEN = (hor_visible & vert_visible) ? green_value : 4'd0; 
+    always_comb begin
+        RED = (hor_visible & vert_visible) ? red_value : 4'd0;
+        BLUE = (hor_visible & vert_visible) ? blue_value : 4'd0;
+        GREEN = (hor_visible & vert_visible) ? green_value : 4'd0;
+    end 
 
     always_comb begin
         if (col == 12'd2159) begin
