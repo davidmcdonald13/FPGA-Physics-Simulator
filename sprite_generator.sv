@@ -1,35 +1,3 @@
-/*module sprite_generator
-   #(parameter RADIUS_WIDTH=4)
-   (input  logic [RADIUS_WIDTH-1:0] radius,
-    output logic [2**(RADIUS_WIDTH+1) - 2:0][2**(RADIUS_WIDTH+1) - 2:0] sprite);
-
-    genvar i, j;
-    generate
-        for (i = 0; i < 2**(RADIUS_WIDTH+1) - 1; i++) begin: f1
-            for (j = 0; j< 2**(RADIUS_WIDTH+1) - 1; j++) begin: f2
-                rad_check #(RADIUS_WIDTH)((i - 2**(RADIUS_WIDTH) - 1) * (i - 2**(RADIUS_WIDTH) - 1) + (j - 2**(RADIUS_WIDTH) - 1) * (j - 2**(RADIUS_WIDTH) - 1),
-                          radius, sprite[i][j]);
-            end
-        end
-    endgenerate
-
-endmodule: sprite_generator
-
-module rad_check
-   #(parameter RADIUS_WIDTH=4)
-   (input logic [31:0] location_radius,
-    input logic [RADIUS_WIDTH-1:0] radius,
-    output logic in_circle);
-
-    logic [2*RADIUS_WIDTH-2:0] rad_squared;
-
-    always_comb begin
-        rad_squared = radius * radius;
-        in_circle = location_radius[2*RADIUS_WIDTH-2:0] < rad_squared;
-    end
-
-endmodule: rad_check*/
-
 module sprite_generator
    (input  logic [5:0] radius,
     output logic [126:0][126:0] sprite);
