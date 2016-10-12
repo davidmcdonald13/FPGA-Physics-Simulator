@@ -48,8 +48,8 @@ module color_lookup
         for (i = 0; i < 4; i++) begin: f1
             always_comb begin
                 index[i] = 0;
-                if (col >= sprite_col[i] - 12'd63 && col <= sprite_col[i] + 12'd63) begin
-                    if (row >= sprite_row[i] - 12'd63 && row <= sprite_row[i] + 12'd63) begin
+                if ((sprite_col[i] < 12'd63 || col >= sprite_col[i] - 12'd63) && col <= sprite_col[i] + 12'd63) begin
+                    if ((sprite_row[i] < 12'd63 || row >= sprite_row[i] - 12'd63) && row <= sprite_row[i] + 12'd63) begin
                         index[i] = sprite[row - sprite_row[i] + 12'd63][col - sprite_col[i] + 12'd63];
                     end
                 end

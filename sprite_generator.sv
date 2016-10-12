@@ -38,7 +38,7 @@ module sprite_generator
     generate
         for (i = 0; i < 127; i++) begin: f1
             for (j = 0; j < 127; j++) begin: f2
-                rad_check ((i - 63) * (i - 63) + (j - 63) * (j - 63),
+                rad_check rc((i - 63) * (i - 63) + (j - 63) * (j - 63),
                           radius, sprite[i][j]);
             end
         end
