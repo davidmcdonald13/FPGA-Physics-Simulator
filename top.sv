@@ -12,8 +12,8 @@ module top
     logic [3:0][10:0] sprite_row;
     logic [3:0][11:0] sprite_col;
     
-    assign sprite_row = {11'd0, 11'd0, 11'd1200,  11'd1200};
-    assign sprite_col = {12'd0, 12'd1600, 12'd0, 12'd1600};
+    assign sprite_row = {11'd400, 11'd500, 11'd900,  11'd1200};
+    assign sprite_col = {12'd400, 12'd600, 12'd1300, 12'd1600};
     
     clk_wiz_0 clk(.CLK100MHZ(CLK100MHZ), .clk_out1(clk_out1), .reset(BTND), .locked(locked));
 

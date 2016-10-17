@@ -50,4 +50,6 @@ endmodule: testbench*/
 3 15
 4 31
 5 63
+
+2**(n + 1) - 1
 */
