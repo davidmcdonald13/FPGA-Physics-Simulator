@@ -1,0 +1,8 @@
+simv*
+DVEfiles/
+csrc/
+inter.vpd
+trigger_state_machine.tsm
+ucli.key
+*.swp
+*.swo
