@@ -24,7 +24,7 @@ module fpu_add //computes a+b
    assign result = {s_res, r_res, f_res};
  
    always_comb begin
-      case({neg_a, neg_b}) begin
+      case({neg_a, neg_b})
 	 2'b00: begin
 	    f_res = f_a + f_b;
 	    r_res = r_a + r_b;
