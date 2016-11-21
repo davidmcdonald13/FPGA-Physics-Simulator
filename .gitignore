@@ -6,3 +6,5 @@ trigger_state_machine.tsm
 ucli.key
 *.swp
 *.swo
+display/location_verifier.py
+display/out2.txt
