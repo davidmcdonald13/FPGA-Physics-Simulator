@@ -1,7 +1,7 @@
 // NOTE: clocking wizard can only create 161.905 MHz
 // will this become an issue?
 module top
-   #(parameter SPRITES=3, DIMENSIONS=2, WIDTH=32)
+   #(parameter SPRITES=1, DIMENSIONS=2, WIDTH=32)
    (input logic BTND, BTNU,
     input logic CLK100MHZ,
     input logic [5:0] SW,
@@ -16,25 +16,18 @@ module top
     logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] init_locations, init_velos, locations;
     logic [SPRITES-1:0][WIDTH-1:0] masses;
     logic [SPRITES-1:0][6:0] radii;
+    logic [WIDTH-1:0] number_of_sprites;
     
-    assign init_locations = 'd0;/*{WIDTH'd0, WIDTH'd0};/
-                             {{WIDTH'h80000}, {WIDTH'h80000}},
-                             {{WIDTH'h40000}, {WIDTH'h40000}}};*/
-    assign init_velos[0][0] = 'h10000;
-    assign init_velos[0][1] = 'h10000;
-    assign init_velos[2:1] = 'd0;
-    assign masses[0] = 'h40000;//, 'd0, 'd0};
-    assign masses[1] = 'd0;
-    assign masses[2] = 'd0;
+    assign init_locations = {32'h0, 32'h0};//{32'hfe00_0000, 32'hfe00_0000, 32'hfe00_0000, 32'h0, 32'h0, 32'hfe00_0000};//{32'h100_0000, 32'h100_0000, 32'h0, 32'hff00_0000, 32'hff00_0000, 32'h100_0000};
+    assign init_velos[0][0] = 'hfffc_0000;//'hffff_0000;
+    assign init_velos[0][1] = 'hfffc_0000;//'hffff_0000;
+    //assign init_velos[2:1] = 'd0;
+    assign masses[0] = 'h40000;
+    //assign masses[1] = 'h0000;
+    //assign masses[2] = 'h0000;
     assign radii = 'd0;
     
-    always_comb begin
-        if (SW == 'd0)
-            LED = locations[0][0][31:16];
-        if (SW == 'd1)
-            LED = locations[0][1][31:16];
-        LED = 'd0;
-    end
+    assign LED = number_of_sprites[31:16];
     
 //    assign sprite_row = {11'd400, 11'd500, 11'd900,  11'd1200};
 //    assign sprite_col = {12'd400, 12'd600, 12'd1300, 12'd1600};
@@ -55,8 +48,8 @@ module top
         input logic [SPRITES-1:0][6:0] radii,
         output logic [SPRITES-1:0] locations);*/
         
-    physics_engine #(SPRITES, DIMENSIONS, WIDTH) pe(clk_out1, ~BTND, BTNU, init_locations, init_velos,
-        masses, radii, locations);
+    physics_engine #(SPRITES, WIDTH, DIMENSIONS) pe(clk_out1, ~BTND, BTNU, init_locations, init_velos,
+        masses, radii, locations, number_of_sprites);
         
     locations_to_centers #(SPRITES, WIDTH) ltc(locations, sprite_row, sprite_col);
     
