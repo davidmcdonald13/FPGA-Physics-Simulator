@@ -39,12 +39,19 @@ module fp_alu
             result = buf_result[n-1:0];
 	end
 	`DIV: begin
+        pos_a = a[n-1] ? ~a + 1 : a;
+        pos_b = b[n-1] ? ~b + 1 : b;
+        big_buf = pos_a / pos_b;
+        buf_result = big_buf >> (n/2);
+        result = s ? ~buf_result[n-1:0] + 1 : buf_result[n-1:0];
+        /*
 	   buf_a = {{(n+1){1'b0}},a[n-2:0]};
 	   buf_b = {{(n+1){1'b0}},b[n-2:0]};
 	   buf_a = buf_a << (n/2);
 	   buf_result = buf_a/buf_b;
 	   result = buf_result[n-2:0];
 	   result[n-1] = s;
+       */
 	end
       endcase // case (op)
    end // always_comb
