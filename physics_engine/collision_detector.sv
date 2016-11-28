@@ -52,6 +52,7 @@ module collision_detector
             for (j = i + 1; j < SPRITES; j++) begin: f2
                 detector #(WIDTH) d(locations[i], locations[j],
                                     radii[i], radii[j],
+                                    masses[i], masses[j],
                                     collision[i][j]);
                 assign collision[j][i] = collision[i][j];
             end
@@ -65,6 +66,7 @@ module detector
    #(WIDTH=32)
    (input logic [1:0][WIDTH-1:0] loc_A, loc_B,
     input logic [6:0] radius_A, radius_B,
+    input logic [WIDTH-1:0] mass_A, mass_B,
     output logic collision);
 
     logic [7:0] radius_total;
@@ -73,6 +75,8 @@ module detector
     logic [2*WIDTH+1:0] x_squared, y_squared;
     logic [2*WIDTH+2:0] d_squared;
     logic [WIDTH-14:0] zeros = 'd0;
+
+    logic has_collided;
 
     big_adder #(7) ba(radius_A, radius_B, radius_total);
     unsigned_multiplier #(8) bm(radius_total, radius_total, r_squared);
@@ -85,7 +89,8 @@ module detector
 
     big_adder #(2*WIDTH+2) ba1(x_squared, y_squared, d_squared);
 
-    assign collision = d_squared[2*WIDTH+2:WIDTH] <= {zeros, r_squared};
+    assign has_collided = d_squared[2*WIDTH+2:WIDTH] <= {zeros, r_squared};
+    assign collision = mass_A && mass_B && has_collided;
 
 endmodule: detector
 
