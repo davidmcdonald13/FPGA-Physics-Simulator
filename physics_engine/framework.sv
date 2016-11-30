@@ -115,13 +115,13 @@ module calc
     input logic [WIDTH-1:0] location, velo, actual_sprites,
     output logic [WIDTH-1:0] new_location, new_velo);
 
-    logic [WIDTH-1:0] com_sum, total_mass, com, r, r_squared, a, dv, dx, dt;
+    logic [WIDTH-1:0] com_sum, total_mass, com, r, r_squared, a, dv, dx, dt, shifted_com;
     logic [WIDTH-1:0] actual_a, calculated_loc, calculated_velo;
 
     masked_adder_tree #(SPRITES, WIDTH, SPRITE_INDEX) big_com(weights, com_sum),
                                                       real_mass(masses, total_mass);
 
-    divider #(WIDTH) com_calc(com_sum, actual_sprites, com);
+    //divider #(WIDTH) com_calc(com_sum, actual_sprites, com);
     subtractor #(WIDTH) r_calc(com, location, r);
     multiplier #(WIDTH) r_squarer(r, r, r_squared);
     divider #(WIDTH) accel(total_mass, r_squared, a);
@@ -132,8 +132,9 @@ module calc
 
     assign new_location = (masses[SPRITE_INDEX] == 0) ? location : calculated_loc;
     assign new_velo = (masses[SPRITE_INDEX] == 0) ? velo : calculated_velo;
-    assign actual_a = r_squared ? a : 'd0;
-//    assign com = com_sum << ($clog2(SPRITES-1));
+    assign actual_a = r_squared ? (r[WIDTH-1] ? ~a + 1 : a) : 'd0;
+    assign shifted_com = com_sum >> 1;//($clog2(SPRITES-1));//TODO change this with SPRITES
+    assign com = {com_sum[WIDTH-1], shifted_com[WIDTH-2:0]};
     assign dt = 'h444;// NOTE: this is the best approximation of 1/60 with 16 bits fraction
 
 endmodule: calc
