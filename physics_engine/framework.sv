@@ -12,13 +12,8 @@ module physics_engine
                                                    calc_locations, calc_velos;
 
     logic [21:0] counter, next_counter;
-    //logic [WIDTH-1:0] actual_sprites;
-    
- //   assign spritessss = velo_reg[0][0];
 
     COM_calc #(SPRITES, DIMENSIONS, WIDTH) com(masses, locations, COM_weights);
-
-  //  sprite_counter #(SPRITES, WIDTH) sc(masses, actual_sprites);
 
     genvar i, j;
     generate
@@ -58,36 +53,18 @@ module physics_engine
         end
         else begin
             counter <= next_counter;
-            locations <= next_locations;
-            velo_reg <= next_velos;
-
+            if (counter == 22'd2_699_999) begin
+                locations <= calc_locations;//next_locations;
+                velo_reg <= calc_velos;//next_velos;
+            end
+            else if (data_ready) begin
+                locations <= init_locations;
+                velo_reg <= init_velos;
+            end
         end
     end
 
 endmodule: physics_engine
-
-/*module sprite_counter
-   #(parameter SPRITES=9, WIDTH=32)
-   (input logic [SPRITES-1:0][WIDTH/2-1:0] masses,
-    output logic [WIDTH-1:0] count);
-
-    logic [SPRITES-1:0] booleans;
-
-    genvar i;
-    generate
-        for (i = 0; i < SPRITES; i++) begin: f1
-            assign booleans[i] = (masses[i] != 'd0);
-        end
-    endgenerate
-    
-    always_comb begin
-        count = 'd0;
-        foreach(booleans[idx]) begin
-            count += booleans[idx];
-        end
-    end
-        
-endmodule: sprite_counter*/
 
 module COM_calc
    #(parameter SPRITES=9, DIMENSIONS=2, WIDTH=32)
@@ -105,60 +82,6 @@ module COM_calc
     endgenerate
 
 endmodule: COM_calc
-
-/*module calc
-   #(parameter SPRITES=9, WIDTH=32, SPRITE_INDEX=0)
-   (input logic [SPRITES-1:0][3*WIDTH/2-1:0] weights,
-    input logic [SPRITES-1:0][WIDTH/2-1:0] masses,
-    input logic [WIDTH-1:0] location, velo,// actual_sprites,
-    output logic [WIDTH-1:0] new_location, new_velo);
-
-    logic [3*WIDTH-1:0] r_squared, a, actual_a;
-    logic [3*WIDTH-7:0] calculated_velo, dv;
-    logic [3*WIDTH-13:0] dx, calculated_loc;
-    logic [3*WIDTH/2-1:0] com_sum, com, r, veloextend, biglocextend;
-    logic [WIDTH/2-1:0] total_mass, locextend;
-
-    assign locextend = location[WIDTH-1] ? ~'d0 : 'd0;
-    assign veloextend = velo[WIDTH-1] ? ~'d0 : 'd0;
-    assign biglocextend = location[WIDTH-1] ? ~'d0 : 'd0;
-
-   // masked_adder_tree #(SPRITES, 3*WIDTH/2, SPRITE_INDEX) big_com(weights, com_sum);
-    //masked_adder_tree #(SPRITES, WIDTH/2, SPRITE_INDEX) real_mass(masses, total_mass);
-    generate
-        if (SPRITE_INDEX == 0) begin
-            assign com_sum = weights[1];
-            assign total_mass = masses[1];
-        end
-        else begin
-            assign com_sum = weights[0];
-            assign total_mass = masses[0];
-        end
-    endgenerate
-
-    unsigned_divider #(3*WIDTH/2, WIDTH/2) com_calc(com_sum, {16'd0, total_mass, 16'd0}, com);
-    subtractor #(3*WIDTH/2) r_calc(com, {locextend, location}, r);
-    big_multiplier #(3*WIDTH/2) r_squarer(r, r, r_squared);
-    divider #(3*WIDTH, WIDTH) accel({48'd0, total_mass, 32'd0}, r_squared, a);
-    assign dv = actual_a[3*WIDTH-1:6];
-   
-    //adder #(3*WIDTH-6) vel_calc(dv, {veloextend, velo, 10'd0}, calculated_velo);
-    assign calculated_velo[9:0] = dv[9:0];
-    adder #(3*WIDTH-16) vel_calc(dv[3*WIDTH-7:10], {veloextend, velo}, calculated_velo[3*WIDTH-7:10]);
-    
-    assign dx = calculated_velo[3*WIDTH-7:6];
-   
-    //adder #(3*WIDTH-12) loc_calc(dx, {biglocextend, location, 4'd0}, calculated_loc);
-    assign calculated_loc[3:0] = dx[3:0]; 
-    adder #(3*WIDTH-16) loc_calc(dx[3*WIDTH-13:4], {biglocextend, location}, calculated_loc[3*WIDTH-13:4]);
-
-    assign new_location = (masses[SPRITE_INDEX] == 0) ? location : calculated_loc[3*WIDTH/2-7:WIDTH/2-6];
-    assign new_velo = (masses[SPRITE_INDEX] == 0) ? velo : calculated_velo[3*WIDTH/2-13:WIDTH/2-12];
-    assign actual_a = r ? (r[3*WIDTH/2-1] ? ~a + 1 : a) : 'd0;
-   // assign shifted_com = com_sum;//com_sum >> 1;//($clog2(SPRITES-1));//TODO change this with SPRITES
-  //  assign dt = 'h444_4444;// NOTE: this is the best approximation of 1/60 with 32 bits fraction
-
-endmodule: calc*/
 
 module calc
    #(parameter SPRITES=9, WIDTH=32, SPRITE_INDEX=0)
@@ -222,66 +145,18 @@ module truncate
     end
 endmodule: truncate
 
-
-/*module masked_adder_tree
-   #(parameter SPRITES=9, WIDTH=32, SPRITE_INDEX=0)
-   (input logic [SPRITES-1:0][WIDTH-1:0] values,
-    output logic [WIDTH-1:0] sum);
-
-    logic [SPRITES-2:0][WIDTH-1:0] input_values;
-
-    genvar i;
-    generate
-        for (i = 0; i < SPRITES-1; i++) begin: f1
-            assign input_values[i] = (i < SPRITE_INDEX) ? values[i] : values[i+1];
-        end
-    endgenerate
-
-    adder_tree #(SPRITES-1, WIDTH) tree(input_values, sum);
-endmodule: masked_adder_tree
-
-// NOTE: parameter INPUTS *must* be a power of 2
-module adder_tree
-   #(parameter INPUTS=8, WIDTH=32)
-   (input logic [INPUTS-1:0][WIDTH-1:0] inputs,
-    output logic [WIDTH-1:0] sum);
-
-    genvar i;
-    generate
-        if (INPUTS == 1)
-            assign sum = inputs[0];
-        else if (INPUTS == 2)
-            adder #(WIDTH) result(inputs[0], inputs[1], sum);
-        else begin
-            logic [INPUTS-2:0][WIDTH-1:0] intermediate;
-            for (i = 0; i < INPUTS/2; i++) begin: f1
-                adder #(WIDTH) top_row(inputs[2*i], inputs[2*i+1], intermediate[i]);
-            end
-            for (i = 0; i < INPUTS-2; i++) begin: f2
-                adder #(WIDTH) inter(intermediate[2*i], intermediate[2*i+1], intermediate[i + INPUTS/2]);
-            end
-            assign sum = intermediate[INPUTS-2];
-        end
-    endgenerate
-
-endmodule: adder_tree*/
-
 module com_add_multiplier
    #(parameter SIZE_ONE=32, SIZE_TWO=32)
    (input logic [SIZE_ONE-1:0] a,
     input logic [SIZE_TWO-1:0] b,
     output logic [SIZE_ONE+SIZE_TWO-1:0] result);
     
-    logic s;
-    logic [SIZE_ONE-1:0] abs_a;
     logic [SIZE_TWO-1:0] abs_b;
     logic [SIZE_ONE+SIZE_TWO-1:0] buffer;
 
-    assign s = a[SIZE_ONE-1] ^ b[SIZE_TWO-1];
-    assign abs_a = a[SIZE_ONE-1] ? ~a + 1 : a;
     assign abs_b = b[SIZE_TWO-1] ? ~b + 1 : b;
-    assign buffer = abs_a * abs_b;
-    assign result = s ? ~buffer + 1 : buffer;
+    assign buffer = a * abs_b;
+    assign result = b[SIZE_TWO-1] ? ~buffer + 1 : buffer;
     
 endmodule: com_add_multiplier
 

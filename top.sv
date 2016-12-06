@@ -17,10 +17,11 @@ module top
     logic [SPRITES-1:0][6:0] radii;
     
 //    assign init_locations[0] = {64'h0, 64'h0};
-    assign init_locations[0] = {32'h0, 32'h0100_0000};
-    assign init_locations[1] = {32'h0, 32'hff00_0000};
-   // assign init_locations = 'd0;
-    assign init_velos = 'd0;//{32'h0, 32'h1_0000, 32'h0, 32'hffff_0000};
+    assign init_locations[0] = {32'h0100_0000, 32'h0100_0000};
+    assign init_locations[1] = {32'hff00_0000, 32'hff00_0000};
+    // assign init_locations = 'd0;
+    assign init_velos[0] = {32'h0000_0100, 32'h0};
+    assign init_velos[1] = {32'h0000_0100, 32'h0};
     assign masses = {16'h400, 16'h400};//, 64'h4_0000_0000};
     assign radii = {7'd15, 7'd15};//, 7'd15};
         
