@@ -1,22 +1,22 @@
 module sprite_generator
-   (input  logic [5:0] radius,
-    output logic [126:0][126:0] sprite);
+   (output logic [62:0][62:0] sprite);
 
+    logic [4:0] radius = 5'h1f;
+    
     genvar i, j;
     generate
-        for (i = 0; i < 127; i++) begin: f1
-            for (j = 0; j < 127; j++) begin: f2
-                rad_check rc((i - 63) * (i - 63) + (j - 63) * (j - 63),
-                          radius, sprite[i][j]);
+        for (i = 0; i < 63; i++) begin: f1
+            for (j = 0; j < 63; j++) begin: f2
+                rad_check rc((i - 31) * (i - 31) + (j - 31) * (j - 31), radius, sprite[i][j]);
             end
         end
     endgenerate
-
+    
 endmodule: sprite_generator
 
 module rad_check
    (input logic [31:0] location_radius,
-    input logic [5:0] radius,
+    input logic [4:0] radius,
     output logic in_circle);
 
     logic [31:0] rad_squared;

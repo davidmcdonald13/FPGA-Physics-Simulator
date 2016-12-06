@@ -29,29 +29,29 @@ endmodule: pixelArray
 
 module color_lookup
    #(parameter SPRITES=1)
-   (input logic [126:0][126:0] sprite,
+   (input logic [62:0][62:0] sprite,
     input logic [SPRITES-1:0][10:0] sprite_row,
     input logic [10:0] row,
     input logic [SPRITES-1:0][11:0] sprite_col,
     input logic [11:0] col,
     output logic [3:0] red, green, blue);
     
-    logic is_sprite;
+    //logic is_sprite;
     logic[SPRITES-1:0] index;
     
-    assign is_sprite = |index;
-    assign red = is_sprite ? 4'd0 : 4'hf;
+  //  assign is_sprite = |index;
+    assign red = index[0] ? 4'hf : 4'd0;
     assign blue = 4'd0;
-    assign green = is_sprite ? 4'hf : 4'd0;
+    assign green = index[1] ? 4'hf : 4'd0;
     
     genvar i;
     generate
         for (i = 0; i < SPRITES; i++) begin: f1
             always_comb begin
                 index[i] = 0;
-                if ((sprite_col[i] < 12'd63 || col >= sprite_col[i] - 12'd63) && col <= sprite_col[i] + 12'd63) begin
-                    if ((sprite_row[i] < 12'd63 || row >= sprite_row[i] - 12'd63) && row <= sprite_row[i] + 12'd63) begin
-                        index[i] = sprite[row - sprite_row[i] + 12'd63][col - sprite_col[i] + 12'd63];
+                if ((sprite_col[i] < 12'd31 || col >= sprite_col[i] - 12'd31) && col <= sprite_col[i] + 12'd31) begin
+                    if ((sprite_row[i] < 11'd31 || row >= sprite_row[i] - 11'd31) && row <= sprite_row[i] + 11'd31) begin
+                        index[i] = sprite[row - sprite_row[i] + 11'd31][col - sprite_col[i] + 12'd31];
                     end
                 end
             end
@@ -63,7 +63,7 @@ endmodule: color_lookup
 module VGA_driver
    #(parameter SPRITES=1)
    (input logic clock_162, rst,
-    input logic [126:0][126:0] sprite,
+    input logic [62:0][62:0] sprite,
     input logic [SPRITES-1:0][10:0] sprite_row,
     input logic [SPRITES-1:0][11:0] sprite_col,
     output logic [3:0] RED, GREEN, BLUE,
