@@ -1,9 +1,40 @@
+module collision_detector
+    #(parameter SPRITES=9, DIMENSIONS=2, WIDTH=32)
+    (input logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] locations,
+        velocities,
+    input logic [SPRITES-1:0][WIDTH/2-1:0] masses,
+    input logic [SPRITES-1:0][6:0] radii,
+    input logic clk, rst_l,
+    output logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] new_locations,
+        new_velocities);
+
+    logic [SPRITES-1:0][SPRITES-1:0]               collision_matrix;
+    
+    collision_handler #(SPRITES, DIMENSIONS, WIDTH) ch(locations, velocities, masses, collision_matrix,
+            clk, rst_l, new_locations, new_velocities);
+    
+    genvar i, j;
+    generate
+        for (i = 0; i < SPRITES; i++) begin: f1
+            assign collision_matrix[i][i] = 0;
+            for (j = i + 1; j < SPRITES; j++) begin: f2
+                detector #(WIDTH) d(locations[i], locations[j],
+                                    radii[i], radii[j],
+                                    masses[i], masses[j],
+                                    collision_matrix[i][j]);
+                assign collision_matrix[j][i] = collision_matrix[i][j];
+            end
+        end
+    endgenerate
+
+endmodule: collision_detector
+
 // NOTE: this assumes 2 dimensions, will not work with 3D
-/*module detector
+module detector
    #(WIDTH=32)
    (input logic [1:0][WIDTH-1:0] loc_A, loc_B,
     input logic [6:0] radius_A, radius_B,
-    input logic [WIDTH-1:0] mass_A, mass_B,
+    input logic [WIDTH/2-1:0] mass_A, mass_B,
     output logic collision);
 
     logic has_collided;
@@ -44,7 +75,7 @@ module big_subtractor
         result = a_buf + ~b_buf + 1;
     end
 
-endmodule: big_subtractor*/
+endmodule: big_subtractor
 
 module big_adder
    #(parameter WIDTH=32)
@@ -74,11 +105,11 @@ module big_multiplier
 
 endmodule: big_multiplier
 
-/*module unsigned_multiplier
+module unsigned_multiplier
    #(parameter WIDTH=32)
    (input logic [WIDTH-1:0] a, b,
     output logic [2*WIDTH-1:0] result);
 
     assign result = a * b;
 
-endmodule: unsigned_multiplier*/
+endmodule: unsigned_multiplier

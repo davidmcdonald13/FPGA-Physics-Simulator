@@ -9,7 +9,7 @@ module physics_engine
 
     logic [DIMENSIONS-1:0][SPRITES-1:0][3*WIDTH/2-1:0] COM_weights;
     logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] velo_reg, next_locations, next_velos,
-                                                   calc_locations, calc_velos;
+                                                   calc_locations, calc_velos, col_locations, col_velos;
 
     logic [21:0] counter, next_counter;
 
@@ -26,7 +26,7 @@ module physics_engine
         end
     endgenerate
 
-    // TODO implement collision detection
+    collision_detector #(SPRITES, DIMENSIONS, WIDTH) cd(calc_locations, calc_velos, masses, radii, col_locations, col_velos);
 
     always_comb begin
         next_counter = (counter == 22'd2_699_999) ? 'd0 : counter + 'd1;
@@ -54,8 +54,8 @@ module physics_engine
         else begin
             counter <= next_counter;
             if (counter == 22'd2_699_999) begin
-                locations <= calc_locations;//next_locations;
-                velo_reg <= calc_velos;//next_velos;
+                locations <= col_locations;//next_locations;
+                velo_reg <= col_velos;//next_velos;
             end
             else if (data_ready) begin
                 locations <= init_locations;
@@ -90,7 +90,7 @@ module calc
     input logic [WIDTH-1:0] location, velo,
     output logic [WIDTH-1:0] new_location, new_velo);
 
-    logic [3*WIDTH/2-1:0] r_squared, a, actual_a, dv, calculated_velo, dx, calculated_loc;
+    logic [3*WIDTH/2-1:0] r_squared, temp_a, a, actual_a, dv, calculated_velo, dx, calculated_loc;
     logic [3*WIDTH/2-1:0] com_sum, com, r, abs_r;
     logic [WIDTH/2-1:0] total_mass, locextend, veloextend;
     logic [WIDTH-1:0] trunc_velo, trunc_loc;
@@ -111,7 +111,8 @@ module calc
 
     divider #(3*WIDTH/2, WIDTH/2) com_calc(com_sum, {16'd0, total_mass, 16'd0}, com);
     subtractor #(3*WIDTH/2) r_calc(com, {locextend, location}, r);
-    divider #(3*WIDTH/2, WIDTH/2) accel({16'd0, total_mass, 16'd0}, abs_r, a);
+    divider #(3*WIDTH/2, WIDTH/2) accel1({16'd0, total_mass, 16'd0}, abs_r, a);
+  //  divider #(3*WIDTH/2, WIDTH/2) accel2(temp_a, abs_r, a);
     assign dv = $signed(actual_a) >>> 6;
    
     adder #(3*WIDTH/2) vel_calc(dv, {veloextend, velo}, calculated_velo);
