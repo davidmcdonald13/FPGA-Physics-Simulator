@@ -5,61 +5,99 @@ module physics_engine
     input logic [SPRITES-1:0][WIDTH/2-1:0] masses,
     input logic [SPRITES-1:0][6:0] radii,
     output logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] locations,
-    input logic btn);
+    output logic collision);
 
+    logic collision_out;
     logic [DIMENSIONS-1:0][SPRITES-1:0][3*WIDTH/2-1:0] COM_weights;
     logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] velo_reg, next_locations, next_velos,
-                                                   calc_locations, calc_velos, col_locations, col_velos;
+                                   calc_locations, calc_velos, col_velos;
+    logic [DIMENSIONS-1:0][3*WIDTH-1:0] distances_squared;
+    logic [DIMENSIONS-1:0][WIDTH-1:0] curr_calc_locations, curr_calc_velos;
 
     logic [21:0] counter, next_counter;
+    logic [14:0] small_counter, next_small_counter;
+    logic [$clog2(SPRITES)-1:0] sprite_index, next_sprite_index;
 
     COM_calc #(SPRITES, DIMENSIONS, WIDTH) com(masses, locations, COM_weights);
 
-    genvar i, j;
+    /*genvar i, j;
     generate
         for (i = 0; i < SPRITES; i++) begin: f1
+            logic [DIMENSIONS-1:0][3*WIDTH-1:0] distances_squared;
             for (j = 0; j < DIMENSIONS; j++) begin: f2
-                calc #(SPRITES, WIDTH, i) c(COM_weights[j], masses, locations[i][j],
-                    velo_reg[i][j], /*actual_sprites,*/ calc_locations[i][j],
-                    calc_velos[i][j]);
+                logic [3*WIDTH-1:0] dy_squared;
+                if (j == 0)
+                    assign dy_squared = distances_squared[1];
+                else
+                    assign dy_squared = distances_squared[0];
+                calc #(SPRITES, WIDTH, i) c(COM_weights[j], masses,
+                    locations[i][j], velo_reg[i][j], dy_squared, calc_locations[i][j],
+                    calc_velos[i][j], distances_squared[j]);
             end
+        end
+    endgenerate*/
+
+    genvar i;
+    generate
+        for (i = 0; i < DIMENSIONS; i++) begin: f1
+            logic dist_index;
+            assign dist_index = (i == 0) ? 1 : 0;
+            calc #(SPRITES, WIDTH) c(COM_weights[i], masses, locations[sprite_index][i],
+                velo_reg[sprite_index][i], distances_squared[dist_index],
+                sprite_index, curr_calc_locations[i],
+                curr_calc_velos[i], distances_squared[i]);
         end
     endgenerate
 
-    collision_detector #(SPRITES, DIMENSIONS, WIDTH) cd(calc_locations, calc_velos, masses, radii, col_locations, col_velos);
+  /*  collision_detector #(SPRITES, DIMENSIONS, WIDTH) cd(calc_locations, calc_velos,
+           masses, radii, clk_162, rst_l, col_velos, collision_out);*/
+           
+    assign col_velos = calc_velos; 
+
+    assign next_counter = (counter == 22'd2_699_999) ? 'd0 : counter + 'd1;
+    assign next_small_counter = small_counter + 'd1;
 
     always_comb begin
-        next_counter = (counter == 22'd2_699_999) ? 'd0 : counter + 'd1;
-        if (counter == 22'd2_699_999) begin
-            next_locations = calc_locations;
-            next_velos = calc_velos;
-        end
-        else begin
-            next_locations = locations;
-            next_velos = velo_reg;
-        end
-        if (data_ready) begin
-            next_counter = 'd0;
-            next_locations = init_locations;
-            next_velos = init_velos;
+        next_sprite_index = sprite_index;
+        if (small_counter == 15'h7fff) begin
+            next_sprite_index = sprite_index + 'd1;
+            if (sprite_index == SPRITES-1)
+                next_sprite_index = 'd0;
         end
     end
 
     always_ff @(posedge clk_162) begin
+        collision <= 'b0;
         if (~rst_l) begin
             locations <= 'd0;
             velo_reg <= 'd0;
             counter <= 'd0;
+            small_counter <= 'd0;
+            sprite_index <= 'd0;
+            calc_locations <= 'd0;
+            calc_velos <= 'd0;
         end
         else begin
             counter <= next_counter;
+            small_counter <= next_small_counter;
+            sprite_index <= next_sprite_index;
             if (counter == 22'd2_699_999) begin
-                locations <= col_locations;//next_locations;
-                velo_reg <= col_velos;//next_velos;
+                locations <= calc_locations;
+                velo_reg <= col_velos;
+                collision <= collision_out;
+                small_counter <= 'd0;
+                sprite_index <= 'd0;
             end
             else if (data_ready) begin
+                counter <= 'd0;
+                small_counter <= 'd0;
                 locations <= init_locations;
                 velo_reg <= init_velos;
+                sprite_index <= 'd0;
+            end
+            else if (small_counter == 15'h7fff) begin
+                calc_locations[sprite_index] <= curr_calc_locations;
+                calc_velos[sprite_index] <= curr_calc_velos;
             end
         end
     end
@@ -84,21 +122,29 @@ module COM_calc
 endmodule: COM_calc
 
 module calc
-   #(parameter SPRITES=9, WIDTH=32, SPRITE_INDEX=0)
+   #(parameter SPRITES=9, WIDTH=32)
    (input logic [SPRITES-1:0][3*WIDTH/2-1:0] weights,
     input logic [SPRITES-1:0][WIDTH/2-1:0] masses,
     input logic [WIDTH-1:0] location, velo,
-    output logic [WIDTH-1:0] new_location, new_velo);
+    input logic [3*WIDTH-1:0] ry_squared,
+    input logic sprite_index,
+    output logic [WIDTH-1:0] new_location, new_velo,
+    output logic [3*WIDTH-1:0] r_squared);
 
-    logic [3*WIDTH/2-1:0] r_squared, temp_a, a, actual_a, dv, calculated_velo, dx, calculated_loc;
+
+    logic [3*WIDTH-1:0] top, a, distance;
     logic [3*WIDTH/2-1:0] com_sum, com, r, abs_r;
-    logic [WIDTH/2-1:0] total_mass, locextend, veloextend;
+    logic [WIDTH/2-1:0] total_mass, half_zero;
+    logic [3*WIDTH/2-1:0] locextend, veloextend;
     logic [WIDTH-1:0] trunc_velo, trunc_loc;
+    logic [5*WIDTH/2-1:0] actual_a, dv, calculated_velo, dx, calculated_loc;
 
     assign locextend = location[WIDTH-1] ? ~'d0 : 'd0;
     assign veloextend = velo[WIDTH-1] ? ~'d0 : 'd0;
+    assign half_zero = 'd0;
+    assign distance = r_squared + ry_squared;
 
-    generate
+    /*generate
         if (SPRITE_INDEX == 0) begin
             assign com_sum = weights[1];
             assign total_mass = masses[1];
@@ -107,107 +153,45 @@ module calc
             assign com_sum = weights[0];
             assign total_mass = masses[0];
         end
-    endgenerate
+    endgenerate*/
+
+    assign com_sum = weights[~sprite_index];
+    assign total_mass = masses[~sprite_index];
 
     divider #(3*WIDTH/2, WIDTH/2) com_calc(com_sum, {16'd0, total_mass, 16'd0}, com);
-    subtractor #(3*WIDTH/2) r_calc(com, {locextend, location}, r);
-    divider #(3*WIDTH/2, WIDTH/2) accel1({16'd0, total_mass, 16'd0}, abs_r, a);
-  //  divider #(3*WIDTH/2, WIDTH/2) accel2(temp_a, abs_r, a);
+    subtractor #(3*WIDTH/2) r_calc(com, {locextend[WIDTH/2-1:0], location}, r);
+    big_multiplier #(3*WIDTH/2) r_squarer(abs_r, abs_r, r_squared);
+    big_multiplier #(3*WIDTH/2) top_calc(r, {16'd0, total_mass, 16'd0}, top);
+    divider #(3*WIDTH, WIDTH) accel1(top, distance, a);
     assign dv = $signed(actual_a) >>> 6;
-   
-    adder #(3*WIDTH/2) vel_calc(dv, {veloextend, velo}, calculated_velo);
-    
-    assign dx = $signed(calculated_velo) >>> 6;
-   
-    adder #(3*WIDTH/2) loc_calc(dx, {locextend, location}, calculated_loc);
-    
-    truncate #(3*WIDTH/2, WIDTH) l(calculated_loc, trunc_loc),
-                                 v(calculated_velo, trunc_velo);
 
-    assign new_location = (masses[SPRITE_INDEX] == 0) ? location : calculated_loc[WIDTH-1:0];
-    assign new_velo = (masses[SPRITE_INDEX] == 0) ? velo : calculated_velo[WIDTH-1:0];
-    assign actual_a = r ? (r[3*WIDTH/2-1] ? ~a + 1 : a) : 'd0;
+    adder #(5*WIDTH/2) vel_calc(dv, {veloextend, velo}, calculated_velo);
+
+    assign dx = $signed(calculated_velo) >>> 6;
+
+    adder #(5*WIDTH/2) loc_calc(dx, {locextend, location}, calculated_loc);
+
+    truncate #(5*WIDTH/2, WIDTH, 0) l(calculated_loc, trunc_loc),
+                                        v(calculated_velo, trunc_velo);
+
+    assign new_location = (masses[sprite_index] == 0) ? location : trunc_loc;
+    assign new_velo = (masses[sprite_index] == 0) ? velo : trunc_velo;
+    assign actual_a = distance ? a[3*WIDTH-1:WIDTH/2] : 'd0;
     assign abs_r = r[3*WIDTH/2-1] ? ~r + 1 : r;
 
 endmodule: calc
 
 module truncate
-   #(parameter BIG=48, TARGET=32)
+   #(parameter BIG=48, TARGET=32, CHOP=16)
    (input logic [BIG-1:0] full,
     output logic [TARGET-1:0] trunc);
-    
+
     logic [BIG-1:0] abs_full;
     logic [TARGET-1:0] abs_trunc;
-    
+
     always_comb begin
         abs_full = full[BIG-1] ? ~full + 1 : full;
-        abs_trunc = {1'b0, abs_full[TARGET-2:0]};
+        abs_trunc = {1'b0, abs_full[TARGET+CHOP-2:CHOP]};
         trunc = full[BIG-1] ? ~abs_trunc + 1 : abs_trunc;
     end
 endmodule: truncate
-
-module com_add_multiplier
-   #(parameter SIZE_ONE=32, SIZE_TWO=32)
-   (input logic [SIZE_ONE-1:0] a,
-    input logic [SIZE_TWO-1:0] b,
-    output logic [SIZE_ONE+SIZE_TWO-1:0] result);
-    
-    logic [SIZE_TWO-1:0] abs_b;
-    logic [SIZE_ONE+SIZE_TWO-1:0] buffer;
-
-    assign abs_b = b[SIZE_TWO-1] ? ~b + 1 : b;
-    assign buffer = a * abs_b;
-    assign result = b[SIZE_TWO-1] ? ~buffer + 1 : buffer;
-    
-endmodule: com_add_multiplier
-
-module multiplier
-   #(parameter WIDTH=32)
-   (input logic [WIDTH-1:0] a, b,
-    output logic [WIDTH-1:0] out);
-
-    fp_mul #(WIDTH) mul(a, b, out);
-
-endmodule: multiplier
-
-module adder
-   #(parameter WIDTH=32)
-   (input logic [WIDTH-1:0] a, b,
-    output logic [WIDTH-1:0] out);
-
-    fp_add #(WIDTH) add(a, b, out);
-
-endmodule: adder
-
-module subtractor
-   #(parameter WIDTH=32)
-   (input logic [WIDTH-1:0] a, b,
-    output logic [WIDTH-1:0] out);
-
-    fp_sub #(WIDTH) sub(a, b, out);
-
-endmodule: subtractor
-
-module divider
-   #(parameter WIDTH=32, Q=16)
-   (input logic [WIDTH-1:0] a, b,
-    output logic [WIDTH-1:0] out);
-
-    fp_div #(WIDTH, Q) div(a, b, out);
-
-endmodule: divider
-
-module unsigned_divider
-    #(parameter n=64, q=32)
-    (input logic [n-1:0] a, b,
-    output logic [n-1:0] result);
-    
-    logic [n-1:0] big_buf;
-    logic [n+q-1:0] buf_a;
-    
-    always_comb begin
-        buf_a = a << q;
-        big_buf = buf_a / b;
-        result = big_buf[n-1:0];
-    end
-endmodule: unsigned_divider
