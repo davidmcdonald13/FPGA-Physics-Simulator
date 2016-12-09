@@ -1,7 +1,7 @@
 // NOTE: clocking wizard can only create 161.905 MHz
 // will this become an issue?
 module top
-   #(parameter SPRITES=2, DIMENSIONS=2, WIDTH=32)
+   #(parameter SPRITES=4, DIMENSIONS=2, WIDTH=32)
    (input logic BTND, BTNU, //BTNL,
     input logic CLK100MHZ,
     input logic [15:0] SW,
@@ -17,8 +17,8 @@ module top
     logic [SPRITES-1:0][6:0] radii;
     logic collision;
     
-    assign radii = {7'h1f, 7'h1f};//, 7'h1f, 7'h1f};
-    assign masses = {16'h400, 16'h400};//, 16'h400, 16'h400};
+    assign radii = {7'h1f, 7'h1f, 7'h1f, 7'h1f};
+    assign masses = {16'h400, 16'h400, 16'h400, 16'h400};
     
     initial_selector #(SPRITES) is(SW, init_locations, init_velos);
    /* assign init_locations = {32'h0, 32'hff00_0000, 32'h0, 32'h100_0000};
@@ -51,7 +51,7 @@ module initial_selector
             'd0: begin
                 loc[0] = {32'h0100_0000, 32'h0100_0000};
                 loc[1] = {32'hff00_0000, 32'hff00_0000};
-         /*       loc[2] = {32'h0100_0000, 32'hff00_0000};
+                loc[2] = {32'h0100_0000, 32'hff00_0000};
                 loc[3] = {32'hff00_0000, 32'h0100_0000};
             end
             'd1: begin
@@ -62,9 +62,9 @@ module initial_selector
                 vel[0] = {32'h0010_0000, 32'h0};
                 vel[1] = {32'hfff0_0000, 32'h0};
                 vel[2] = {32'h0010_0000, 32'h0};
-                vel[3] = {32'hfff0_0000, 32'h0};*/
+                vel[3] = {32'hfff0_0000, 32'h0};
              end
-            'd1: begin
+            /*'d1: begin
                 loc[0] = {32'h0, 32'h0100_0000};
                 loc[1] = {32'h0, 32'hff00_0000};
             end
@@ -159,7 +159,7 @@ module initial_selector
                 loc[1] = {32'h0, 32'hff00_0000};
                 vel[0] = {32'h0004_0000, 32'h0};
                 vel[1] = {32'h0004_0000, 32'h0};
-            end
+            end*/
         endcase
     end
 endmodule: initial_selector

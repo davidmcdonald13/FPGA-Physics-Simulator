@@ -57,7 +57,7 @@ module fp_div
     
 endmodule: fp_div
 
-/*module big_subtractor
+module big_subtractor
    #(parameter WIDTH=32)
    (input logic [WIDTH-1:0] a, b,
     output logic [WIDTH:0] result);
@@ -70,16 +70,16 @@ endmodule: fp_div
         result = a_buf + ~b_buf + 1;
     end
 
-endmodule: big_subtractor*/
+endmodule: big_subtractor
 
-/*module big_adder
+module big_adder
    #(parameter WIDTH=32)
    (input logic [WIDTH-1:0] a, b,
     output logic [WIDTH:0] result);
 
     assign result = a + b;
 
-endmodule: big_adder*/
+endmodule: big_adder
 
 module big_multiplier
    #(parameter WIDTH=32)

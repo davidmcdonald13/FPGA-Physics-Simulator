@@ -42,13 +42,13 @@ module color_lookup
   //  assign is_sprite = |index;
     always_comb begin
         red = index[0] ? 4'hf : 4'd0;
-        blue = 'd0;//index[2] ? 4'hf : 4'd0;
+        blue = index[2] ? 4'hf : 4'd0;
         green = index[1] ? 4'hf : 4'd0;
-        /*if (index[3]) begin
+        if (index[3]) begin
             red = 4'hf;
             blue = 4'hf;
             green = 4'hf;
-         end*/
+         end
     end
     
     genvar i;
