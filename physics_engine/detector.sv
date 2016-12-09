@@ -1,28 +1,42 @@
-module collision_detector
+/*module collision_detector
     #(parameter SPRITES=9, DIMENSIONS=2, WIDTH=32)
     (input logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] locations,
         velocities,
-    input logic [SPRITES-1:0][WIDTH/2-1:0] masses,
     input logic [SPRITES-1:0][6:0] radii,
     input logic clk, rst_l,
-    output logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] new_locations,
-        new_velocities);
+    output logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] new_velocities,
+    output logic collision);
 
     logic [SPRITES-1:0][SPRITES-1:0]               collision_matrix;
+    logic [SPRITES-1:0][SPRITES-1:0][2*WIDTH+2:0] d_squared;
+    logic [SPRITES-1:0][SPRITES-1:0][WIDTH:0] xdiff, ydiff;
+    assign collision = |collision_matrix;
+    logic [SPRITES-1:0] collision_vector;
     
-    collision_handler #(SPRITES, DIMENSIONS, WIDTH) ch(locations, velocities, masses, collision_matrix,
-            clk, rst_l, new_locations, new_velocities);
+//    collision_handler #(SPRITES, DIMENSIONS, WIDTH) ch(d_squared, xdiff, ydiff, locations, velocities, collision_matrix,
+//            clk, rst_l, new_velocities, collision);
     
     genvar i, j;
     generate
         for (i = 0; i < SPRITES; i++) begin: f1
+            assign collision_vector[i] = collision_matrix[0] | collision_matrix[1] | collision_matrix[2] | collision_matrix[3];
             assign collision_matrix[i][i] = 0;
+            assign d_squared[i][i] = 'd0;
+            assign xdiff[i][i] = 'd0;
+            assign ydiff[i][i] = 'd0;
+            for (j = 0; j < DIMENSIONS; j++) begin: f3
+                assign new_velocities[i][j] = collision_vector[i] ? ~velocities[i][j] + 1 : velocities[i][j];
+            end
             for (j = i + 1; j < SPRITES; j++) begin: f2
                 detector #(WIDTH) d(locations[i], locations[j],
                                     radii[i], radii[j],
-                                    masses[i], masses[j],
+                                    d_squared[i][j],
+                                    xdiff[i][j], ydiff[i][j],
                                     collision_matrix[i][j]);
                 assign collision_matrix[j][i] = collision_matrix[i][j];
+                assign d_squared[j][i] = d_squared[i][j];
+                assign xdiff[j][i] = xdiff[i][j];
+                assign ydiff[j][i] = xdiff[i][j];
             end
         end
     endgenerate
@@ -34,19 +48,18 @@ module detector
    #(WIDTH=32)
    (input logic [1:0][WIDTH-1:0] loc_A, loc_B,
     input logic [6:0] radius_A, radius_B,
-    input logic [WIDTH/2-1:0] mass_A, mass_B,
+    output logic [2*WIDTH+2:0] d_squared,
+    output logic [WIDTH:0] xdiff, ydiff,
     output logic collision);
-
-    logic has_collided;
+    
     logic [7:0] radius_total;
     logic [15:0] r_squared;
-    logic [WIDTH:0] xdiff, ydiff;
+    //logic [WIDTH:0] xdiff, ydiff;
     logic [2*WIDTH+1:0] x_squared, y_squared;
-    logic [2*WIDTH+2:0] d_squared;
     logic [WIDTH-14:0] zeros = 'd0;
 
-    big_adder #(7) ba(radius_A, radius_B, radius_total);
-    unsigned_multiplier #(8) bm(radius_total, radius_total, r_squared);
+//    big_adder #(7) ba(radius_A, radius_B, radius_total);
+//    unsigned_multiplier #(8) bm(radius_total, radius_total, r_squared);
 
     big_subtractor #(WIDTH) sub1(loc_A[1], loc_B[1], xdiff),
                         sub2(loc_A[0], loc_B[0], ydiff);
@@ -56,60 +69,7 @@ module detector
 
     big_adder #(2*WIDTH+2) ba1(x_squared, y_squared, d_squared);
 
-    assign has_collided = d_squared[2*WIDTH+2:WIDTH] <= {zeros, r_squared};
-    assign collision = mass_A && mass_B && has_collided;
+    assign collision = d_squared[2*WIDTH+2:WIDTH] <= 35'd3844;//{zeros, r_squared};
 
 
-endmodule: detector
-
-module big_subtractor
-   #(parameter WIDTH=32)
-   (input logic [WIDTH-1:0] a, b,
-    output logic [WIDTH:0] result);
-
-    logic [WIDTH:0] a_buf, b_buf;
-
-    always_comb begin
-        a_buf = {a[WIDTH-1], a};
-        b_buf = {b[WIDTH-1], b};
-        result = a_buf + ~b_buf + 1;
-    end
-
-endmodule: big_subtractor
-
-module big_adder
-   #(parameter WIDTH=32)
-   (input logic [WIDTH-1:0] a, b,
-    output logic [WIDTH:0] result);
-
-    assign result = a + b;
-
-endmodule: big_adder
-
-module big_multiplier
-   #(parameter WIDTH=32)
-   (input logic [WIDTH-1:0] a, b,
-    output logic [2*WIDTH-1:0] result);
-
-    logic s;
-    logic [WIDTH-1:0] abs_a, abs_b;
-    logic [2*WIDTH-1:0] buffer;
-
-    always_comb begin
-        s = a[WIDTH-1] ^ b[WIDTH-1];
-        abs_a = a[WIDTH-1] ? ~a + 1 : a;
-        abs_b = b[WIDTH-1] ? ~b + 1 : b;
-        buffer = abs_a * abs_b;
-        result = s ? ~buffer + 1 : buffer;
-    end
-
-endmodule: big_multiplier
-
-module unsigned_multiplier
-   #(parameter WIDTH=32)
-   (input logic [WIDTH-1:0] a, b,
-    output logic [2*WIDTH-1:0] result);
-
-    assign result = a * b;
-
-endmodule: unsigned_multiplier
+endmodule: detector*/

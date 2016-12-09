@@ -18,7 +18,7 @@ module fp_add
     
 endmodule: fp_sub
 
-module fp_mul
+/*module fp_mul
     #(parameter n=32)
     (input logic [n-1:0] a, b,
     output logic [n-1:0] result);
@@ -35,7 +35,7 @@ module fp_mul
         result = s ? (1 + ~big_buf[3*n/2-1:n/2]) : big_buf[3*n/2-1:n/2];
     end
     
-endmodule: fp_mul
+endmodule: fp_mul*/
 
 module fp_div
     #(parameter n=64, q=32)
@@ -57,7 +57,7 @@ module fp_div
     
 endmodule: fp_div
 
-module big_subtractor
+/*module big_subtractor
    #(parameter WIDTH=32)
    (input logic [WIDTH-1:0] a, b,
     output logic [WIDTH:0] result);
@@ -70,16 +70,16 @@ module big_subtractor
         result = a_buf + ~b_buf + 1;
     end
 
-endmodule: big_subtractor
+endmodule: big_subtractor*/
 
-module big_adder
+/*module big_adder
    #(parameter WIDTH=32)
    (input logic [WIDTH-1:0] a, b,
     output logic [WIDTH:0] result);
 
     assign result = a + b;
 
-endmodule: big_adder
+endmodule: big_adder*/
 
 module big_multiplier
    #(parameter WIDTH=32)
@@ -100,14 +100,14 @@ module big_multiplier
 
 endmodule: big_multiplier
 
-module unsigned_multiplier
+/*module unsigned_multiplier
    #(parameter WIDTH=32)
    (input logic [WIDTH-1:0] a, b,
     output logic [2*WIDTH-1:0] result);
 
     assign result = a * b;
 
-endmodule: unsigned_multiplier
+endmodule: unsigned_multiplier*/
 
 module com_add_multiplier
    #(parameter SIZE_ONE=32, SIZE_TWO=32)
@@ -124,14 +124,14 @@ module com_add_multiplier
     
 endmodule: com_add_multiplier
 
-module multiplier
+/*module multiplier
    #(parameter WIDTH=32)
    (input logic [WIDTH-1:0] a, b,
     output logic [WIDTH-1:0] out);
 
     fp_mul #(WIDTH) mul(a, b, out);
 
-endmodule: multiplier
+endmodule: multiplier*/
 
 module adder
    #(parameter WIDTH=32)
@@ -160,7 +160,22 @@ module divider
 
 endmodule: divider
 
-module unsigned_divider
+module truncate
+   #(parameter BIG=48, TARGET=32, CHOP=16)
+   (input logic [BIG-1:0] full,
+    output logic [TARGET-1:0] trunc);
+
+    logic [BIG-1:0] abs_full;
+    logic [TARGET-1:0] abs_trunc;
+
+    always_comb begin
+        abs_full = full[BIG-1] ? ~full + 1 : full;
+        abs_trunc = {1'b0, abs_full[TARGET+CHOP-2:CHOP]};
+        trunc = full[BIG-1] ? ~abs_trunc + 1 : abs_trunc;
+    end
+endmodule: truncate
+
+/*module unsigned_divider
     #(parameter n=64, q=32)
     (input logic [n-1:0] a, b,
     output logic [n-1:0] result);
@@ -173,4 +188,4 @@ module unsigned_divider
         big_buf = buf_a / b;
         result = big_buf[n-1:0];
     end
-endmodule: unsigned_divider
+endmodule: unsigned_divider*/

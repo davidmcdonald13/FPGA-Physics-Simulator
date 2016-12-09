@@ -10,7 +10,7 @@ module range_check
     
 endmodule: range_check
 
-module pixelArray
+/*module pixelArray
    (output logic [599:0][1599:0] pixels_top, pixels_bottom);
    
     logic [1599:0] zero;
@@ -25,7 +25,7 @@ module pixelArray
          end
      endgenerate
      
-endmodule: pixelArray
+endmodule: pixelArray*/
 
 module color_lookup
    #(parameter SPRITES=1)
@@ -40,9 +40,16 @@ module color_lookup
     logic[SPRITES-1:0] index;
     
   //  assign is_sprite = |index;
-    assign red = index[0] ? 4'hf : 4'd0;
-    assign blue = 4'd0;
-    assign green = index[1] ? 4'hf : 4'd0;
+    always_comb begin
+        red = index[0] ? 4'hf : 4'd0;
+        blue = 'd0;//index[2] ? 4'hf : 4'd0;
+        green = index[1] ? 4'hf : 4'd0;
+        /*if (index[3]) begin
+            red = 4'hf;
+            blue = 4'hf;
+            green = 4'hf;
+         end*/
+    end
     
     genvar i;
     generate

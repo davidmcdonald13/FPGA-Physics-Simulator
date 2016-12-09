@@ -2,10 +2,9 @@
 // will this become an issue?
 module top
    #(parameter SPRITES=2, DIMENSIONS=2, WIDTH=32)
-   (input logic BTND, BTNU, BTNL,
+   (input logic BTND, BTNU, //BTNL,
     input logic CLK100MHZ,
     input logic [15:0] SW,
-    output logic [15:0] LED,
     output logic VGA_HS, VGA_VS,
     output logic [3:0] VGA_R, VGA_B, VGA_G);
     
@@ -16,11 +15,14 @@ module top
     logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] init_locations, init_velos, locations, velos;
     logic [SPRITES-1:0][WIDTH/2-1:0] masses;
     logic [SPRITES-1:0][6:0] radii;
+    logic collision;
     
-    assign masses = {16'h400, 16'h400};
-    assign radii = {7'h1f, 7'h1f};
+    assign radii = {7'h1f, 7'h1f};//, 7'h1f, 7'h1f};
+    assign masses = {16'h400, 16'h400};//, 16'h400, 16'h400};
     
-    initial_selector is(SW, init_locations, init_velos);
+    initial_selector #(SPRITES) is(SW, init_locations, init_velos);
+   /* assign init_locations = {32'h0, 32'hff00_0000, 32'h0, 32'h100_0000};
+    assign init_velos = 'd0;*/
         
     clk_wiz_0 clk(.CLK100MHZ(CLK100MHZ), .clk_out1(clk_out1), .reset(BTND), .locked(locked));
 
@@ -31,24 +33,16 @@ module top
     sprite_generator sg(.sprite(sprite));
         
     physics_engine #(SPRITES, WIDTH, DIMENSIONS) pe(clk_out1, ~BTND, BTNU, init_locations, init_velos,
-        masses, radii, locations, BTNL);
+        masses, radii, locations, collision);
         
     locations_to_centers #(SPRITES, WIDTH) ltc(locations, sprite_row, sprite_col);
     
-    always_ff @(posedge clk_out1) begin
-        if (BTND || BTNU) begin
-            LED <= 'd0;
-        end
-        else begin
-            LED <= LED | 'd0;
-        end
-    end
-
 endmodule: top
 
 module initial_selector
+   #(SPRITES=4)
    (input logic [15:0] sel,
-    output logic [1:0][1:0][31:0] loc, vel);
+    output logic [SPRITES-1:0][1:0][31:0] loc, vel);
     
     always_comb begin
         loc = 'd0;
@@ -57,7 +51,19 @@ module initial_selector
             'd0: begin
                 loc[0] = {32'h0100_0000, 32'h0100_0000};
                 loc[1] = {32'hff00_0000, 32'hff00_0000};
+         /*       loc[2] = {32'h0100_0000, 32'hff00_0000};
+                loc[3] = {32'hff00_0000, 32'h0100_0000};
             end
+            'd1: begin
+                loc[0] = {32'h0100_0000, 32'h0100_0000};
+                loc[1] = {32'hff00_0000, 32'hff00_0000};
+                loc[2] = {32'h0100_0000, 32'hff00_0000};
+                loc[3] = {32'hff00_0000, 32'h0100_0000};
+                vel[0] = {32'h0010_0000, 32'h0};
+                vel[1] = {32'hfff0_0000, 32'h0};
+                vel[2] = {32'h0010_0000, 32'h0};
+                vel[3] = {32'hfff0_0000, 32'h0};*/
+             end
             'd1: begin
                 loc[0] = {32'h0, 32'h0100_0000};
                 loc[1] = {32'h0, 32'hff00_0000};
@@ -147,6 +153,12 @@ module initial_selector
                 loc[1] = {32'h0, 32'hff00_0000};
                 vel[0] = {32'h0001_0000, 32'h0};
                 vel[1] = {32'h0001_0000, 32'h0};
+            end
+            'd17: begin
+                loc[0] = {32'h0, 32'h0100_0000};
+                loc[1] = {32'h0, 32'hff00_0000};
+                vel[0] = {32'h0004_0000, 32'h0};
+                vel[1] = {32'h0004_0000, 32'h0};
             end
         endcase
     end

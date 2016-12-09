@@ -8,6 +8,7 @@ module physics_engine
     output logic collision);
 
     logic collision_out;
+    logic [DIMENSIONS-1:0][3*WIDTH/2-1:0] COM_sum;
     logic [DIMENSIONS-1:0][SPRITES-1:0][3*WIDTH/2-1:0] COM_weights;
     logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] velo_reg, next_locations, next_velos,
                                    calc_locations, calc_velos, col_velos;
@@ -15,29 +16,15 @@ module physics_engine
     logic [DIMENSIONS-1:0][WIDTH-1:0] curr_calc_locations, curr_calc_velos;
 
     logic [21:0] counter, next_counter;
-    logic [14:0] small_counter, next_small_counter;
+    logic [15:0] small_counter, next_small_counter;
     logic [$clog2(SPRITES)-1:0] sprite_index, next_sprite_index;
 
-    COM_calc #(SPRITES, DIMENSIONS, WIDTH) com(masses, locations, COM_weights);
+    COM_calc #(SPRITES, DIMENSIONS, WIDTH) com(/*masses,*/ locations, COM_weights);
+    
+    assign COM_sum[0] = COM_weights[0][0] + COM_weights[0][1] + COM_weights[0][2] + COM_weights[0][3];
+    assign COM_sum[1] = COM_weights[1][0] + COM_weights[1][1] + COM_weights[1][2] + COM_weights[1][3];
 
-    /*genvar i, j;
-    generate
-        for (i = 0; i < SPRITES; i++) begin: f1
-            logic [DIMENSIONS-1:0][3*WIDTH-1:0] distances_squared;
-            for (j = 0; j < DIMENSIONS; j++) begin: f2
-                logic [3*WIDTH-1:0] dy_squared;
-                if (j == 0)
-                    assign dy_squared = distances_squared[1];
-                else
-                    assign dy_squared = distances_squared[0];
-                calc #(SPRITES, WIDTH, i) c(COM_weights[j], masses,
-                    locations[i][j], velo_reg[i][j], dy_squared, calc_locations[i][j],
-                    calc_velos[i][j], distances_squared[j]);
-            end
-        end
-    endgenerate*/
-
-    genvar i;
+   /* genvar i;
     generate
         for (i = 0; i < DIMENSIONS; i++) begin: f1
             logic dist_index;
@@ -47,19 +34,29 @@ module physics_engine
                 sprite_index, curr_calc_locations[i],
                 curr_calc_velos[i], distances_squared[i]);
         end
-    endgenerate
+    endgenerate*/
+    calc #(SPRITES, WIDTH) c0(COM_sum[0], COM_weights[0], masses, locations[sprite_index][0], velo_reg[sprite_index][0],
+        distances_squared[1], sprite_index, curr_calc_locations[0], curr_calc_velos[0], distances_squared[0]);
+        
+    calc #(SPRITES, WIDTH) c1(COM_sum[1], COM_weights[1], masses, locations[sprite_index][1], velo_reg[sprite_index][1],
+        distances_squared[0], sprite_index, curr_calc_locations[1], curr_calc_velos[1], distances_squared[1]);
+        
+    //collision_handler #(SPRITES, DIMENSIONS, WIDTH) ch(calc_locations, calc_velos, radii, clk_162, rst_l, col_velos, collision_out);
 
-  /*  collision_detector #(SPRITES, DIMENSIONS, WIDTH) cd(calc_locations, calc_velos,
-           masses, radii, clk_162, rst_l, col_velos, collision_out);*/
+//    collision_detector #(SPRITES, DIMENSIONS, WIDTH) cd(calc_locations, calc_velos, radii,
+//           clk_162, rst_l, col_velos, collision_out);
+           assign col_velos = calc_velos;
            
-    assign col_velos = calc_velos; 
-
+   assign collision_out = 0;
+           
+    assign collision = collision_out;
+           
     assign next_counter = (counter == 22'd2_699_999) ? 'd0 : counter + 'd1;
     assign next_small_counter = small_counter + 'd1;
 
     always_comb begin
         next_sprite_index = sprite_index;
-        if (small_counter == 15'h7fff) begin
+        if (small_counter == 16'hffff) begin
             next_sprite_index = sprite_index + 'd1;
             if (sprite_index == SPRITES-1)
                 next_sprite_index = 'd0;
@@ -67,7 +64,6 @@ module physics_engine
     end
 
     always_ff @(posedge clk_162) begin
-        collision <= 'b0;
         if (~rst_l) begin
             locations <= 'd0;
             velo_reg <= 'd0;
@@ -84,7 +80,6 @@ module physics_engine
             if (counter == 22'd2_699_999) begin
                 locations <= calc_locations;
                 velo_reg <= col_velos;
-                collision <= collision_out;
                 small_counter <= 'd0;
                 sprite_index <= 'd0;
             end
@@ -95,7 +90,7 @@ module physics_engine
                 velo_reg <= init_velos;
                 sprite_index <= 'd0;
             end
-            else if (small_counter == 15'h7fff) begin
+            else if (small_counter == 16'hffff) begin
                 calc_locations[sprite_index] <= curr_calc_locations;
                 calc_velos[sprite_index] <= curr_calc_velos;
             end
@@ -106,7 +101,7 @@ endmodule: physics_engine
 
 module COM_calc
    #(parameter SPRITES=9, DIMENSIONS=2, WIDTH=32)
-   (input logic [SPRITES-1:0][WIDTH/2-1:0] masses,
+   (/*input logic [SPRITES-1:0][WIDTH/2-1:0] masses,*/
     input logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] locations,
     output logic [DIMENSIONS-1:0][SPRITES-1:0][3*WIDTH/2-1:0] weights);
 
@@ -114,7 +109,7 @@ module COM_calc
     generate
         for (i = 0; i < SPRITES; i++) begin: f1
             for (j = 0; j < DIMENSIONS; j++) begin: f2
-                com_add_multiplier #(WIDTH/2, WIDTH) m(masses[i], locations[i][j], weights[j][i]);
+                com_add_multiplier #(WIDTH/2, WIDTH) m(16'h400, locations[i][j], weights[j][i]);
             end
         end
     endgenerate
@@ -123,11 +118,12 @@ endmodule: COM_calc
 
 module calc
    #(parameter SPRITES=9, WIDTH=32)
-   (input logic [SPRITES-1:0][3*WIDTH/2-1:0] weights,
+   (input logic [3*WIDTH/2-1:0] weights_sum,
+    input logic [SPRITES-1:0][3*WIDTH/2-1:0] weights,
     input logic [SPRITES-1:0][WIDTH/2-1:0] masses,
     input logic [WIDTH-1:0] location, velo,
     input logic [3*WIDTH-1:0] ry_squared,
-    input logic sprite_index,
+    input logic [1:0] sprite_index,
     output logic [WIDTH-1:0] new_location, new_velo,
     output logic [3*WIDTH-1:0] r_squared);
 
@@ -144,19 +140,8 @@ module calc
     assign half_zero = 'd0;
     assign distance = r_squared + ry_squared;
 
-    /*generate
-        if (SPRITE_INDEX == 0) begin
-            assign com_sum = weights[1];
-            assign total_mass = masses[1];
-        end
-        else begin
-            assign com_sum = weights[0];
-            assign total_mass = masses[0];
-        end
-    endgenerate*/
-
-    assign com_sum = weights[~sprite_index];
-    assign total_mass = masses[~sprite_index];
+    assign com_sum = weights_sum - weights[sprite_index];
+    assign total_mass = 16'hc00;//masses[sprite_index];
 
     divider #(3*WIDTH/2, WIDTH/2) com_calc(com_sum, {16'd0, total_mass, 16'd0}, com);
     subtractor #(3*WIDTH/2) r_calc(com, {locextend[WIDTH/2-1:0], location}, r);
@@ -174,24 +159,9 @@ module calc
     truncate #(5*WIDTH/2, WIDTH, 0) l(calculated_loc, trunc_loc),
                                         v(calculated_velo, trunc_velo);
 
-    assign new_location = (masses[sprite_index] == 0) ? location : trunc_loc;
-    assign new_velo = (masses[sprite_index] == 0) ? velo : trunc_velo;
+    assign new_location = trunc_loc;
+    assign new_velo = trunc_velo;
     assign actual_a = distance ? a[3*WIDTH-1:WIDTH/2] : 'd0;
     assign abs_r = r[3*WIDTH/2-1] ? ~r + 1 : r;
 
 endmodule: calc
-
-module truncate
-   #(parameter BIG=48, TARGET=32, CHOP=16)
-   (input logic [BIG-1:0] full,
-    output logic [TARGET-1:0] trunc);
-
-    logic [BIG-1:0] abs_full;
-    logic [TARGET-1:0] abs_trunc;
-
-    always_comb begin
-        abs_full = full[BIG-1] ? ~full + 1 : full;
-        abs_trunc = {1'b0, abs_full[TARGET+CHOP-2:CHOP]};
-        trunc = full[BIG-1] ? ~abs_trunc + 1 : abs_trunc;
-    end
-endmodule: truncate
