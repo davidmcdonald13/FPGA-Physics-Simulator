@@ -41,13 +41,14 @@ module physics_engine
     calc #(SPRITES, WIDTH) c1(COM_sum[1], COM_weights[1], masses, locations[sprite_index][1], velo_reg[sprite_index][1],
         distances_squared[0], sprite_index, curr_calc_locations[1], curr_calc_velos[1], distances_squared[1]);
         
-    collision_handler #(SPRITES, DIMENSIONS, WIDTH) ch(calc_locations, calc_velos, clk_162, rst_l, col_velos, collision_out);
+    collision_handler #(SPRITES, DIMENSIONS, WIDTH) ch(calc_locations, calc_velos, clk_162, rst_l,
+        col_velos, collision_out);
 
 //    collision_detector #(SPRITES, DIMENSIONS, WIDTH) cd(calc_locations, calc_velos, radii,
 //           clk_162, rst_l, col_velos, collision_out);
-           assign col_velos = calc_velos;
+    //       assign col_velos = calc_velos;
            
-   assign collision_out = 0;
+  // assign collision_out = 0;
            
     assign collision = collision_out;
            
