@@ -19,22 +19,11 @@ module physics_engine
     logic [15:0] small_counter, next_small_counter;
     logic [$clog2(SPRITES)-1:0] sprite_index, next_sprite_index;
 
-    COM_calc #(SPRITES, DIMENSIONS, WIDTH) com(/*masses,*/ locations, COM_weights);
+    COM_calc #(SPRITES, DIMENSIONS, WIDTH) com(locations, COM_weights);
     
     assign COM_sum[0] = COM_weights[0][0] + COM_weights[0][1] + COM_weights[0][2] + COM_weights[0][3];
     assign COM_sum[1] = COM_weights[1][0] + COM_weights[1][1] + COM_weights[1][2] + COM_weights[1][3];
 
-   /* genvar i;
-    generate
-        for (i = 0; i < DIMENSIONS; i++) begin: f1
-            logic dist_index;
-            assign dist_index = (i == 0) ? 1 : 0;
-            calc #(SPRITES, WIDTH) c(COM_weights[i], masses, locations[sprite_index][i],
-                velo_reg[sprite_index][i], distances_squared[dist_index],
-                sprite_index, curr_calc_locations[i],
-                curr_calc_velos[i], distances_squared[i]);
-        end
-    endgenerate*/
     calc #(SPRITES, WIDTH) c0(COM_sum[0], COM_weights[0], masses, locations[sprite_index][0], velo_reg[sprite_index][0],
         distances_squared[1], sprite_index, curr_calc_locations[0], curr_calc_velos[0], distances_squared[0]);
         
@@ -43,14 +32,6 @@ module physics_engine
         
     collision_handler #(SPRITES, DIMENSIONS, WIDTH) ch(calc_locations, calc_velos, clk_162, rst_l,
         col_velos, collision_out);
-
-//    collision_detector #(SPRITES, DIMENSIONS, WIDTH) cd(calc_locations, calc_velos, radii,
-//           clk_162, rst_l, col_velos, collision_out);
-    //       assign col_velos = calc_velos;
-           
-  // assign collision_out = 0;
-           
-   // assign collision = collision_out;
            
     assign next_counter = (counter == 22'd2_699_999) ? 'd0 : counter + 'd1;
     assign next_small_counter = small_counter + 'd1;
@@ -104,8 +85,7 @@ endmodule: physics_engine
 
 module COM_calc
    #(parameter SPRITES=9, DIMENSIONS=2, WIDTH=32)
-   (/*input logic [SPRITES-1:0][WIDTH/2-1:0] masses,*/
-    input logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] locations,
+   (input logic [SPRITES-1:0][DIMENSIONS-1:0][WIDTH-1:0] locations,
     output logic [DIMENSIONS-1:0][SPRITES-1:0][3*WIDTH/2-1:0] weights);
 
     genvar i, j;
@@ -144,7 +124,7 @@ module calc
     assign distance = r_squared + ry_squared;
 
     assign com_sum = weights_sum - weights[sprite_index];
-    assign total_mass = 16'hc00;//masses[sprite_index];
+    assign total_mass = 16'hc00;
 
     divider #(3*WIDTH/2, WIDTH/2) com_calc(com_sum, {16'd0, total_mass, 16'd0}, com);
     subtractor #(3*WIDTH/2) r_calc(com, {locextend[WIDTH/2-1:0], location}, r);

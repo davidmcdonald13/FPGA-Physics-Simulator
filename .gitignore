@@ -8,3 +8,6 @@ ucli.key
 *.swo
 display/location_verifier.py
 display/out2.txt
+alu/*
+!alu/fp_alu.sv
+

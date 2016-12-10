@@ -1,5 +1,3 @@
-// NOTE: this module assumes WIDTH/2 bits decimal and WIDTH/2 bits int
-// NOTE: this module assumes that WIDTH is at least 22
 module location_to_pixels
    #(parameter WIDTH=32)
    (input logic [1:0][WIDTH-1:0] dimensions,
@@ -37,28 +35,3 @@ module locations_to_centers
         end
     endgenerate
 endmodule: locations_to_centers
-/*module location_to_pixels_testbench();
-
-    logic [63:0] row_in, col_in;
-    logic [1:0][63:0] dimensions;
-    logic [11:0] col_out;
-    logic [10:0] row_out;
-
-    location_to_pixels #(64) ltp(dimensions, col_out, row_out);
-
-    assign dimensions = {col_in, row_in};
-
-    initial begin
-        $monitor($time, "row_in=0x%h, col_in=0x%h, row_out=%d, col_out=%d", row_in, col_in, row_out, col_out);
-        col_in = 'd0;
-        row_in = 'd0;
-        #1;
-        col_in = 'h1_0000_0000;
-        row_in = 'h1_0000_0000;
-        #1;
-        col_in = 'hffff_fffe_0000_0000;
-        row_in = 'hffff_fffe_0000_0000;
-        #1;
-    end
-
-endmodule: location_to_pixels_testbench*/

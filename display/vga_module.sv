@@ -10,23 +10,6 @@ module range_check
     
 endmodule: range_check
 
-/*module pixelArray
-   (output logic [599:0][1599:0] pixels_top, pixels_bottom);
-   
-    logic [1599:0] zero;
-    
-    assign zero = 1599'd0;
-   
-    genvar i;
-    generate
-        for (i = 0; i < 600; i++) begin: f1
-            assign pixels_top[i] = zero;
-            assign pixels_bottom[i] = ~zero;
-         end
-     endgenerate
-     
-endmodule: pixelArray*/
-
 module color_lookup
    #(parameter SPRITES=1)
    (input logic [62:0][62:0] sprite,
@@ -36,10 +19,8 @@ module color_lookup
     input logic [11:0] col,
     output logic [3:0] red, green, blue);
     
-    //logic is_sprite;
     logic[SPRITES-1:0] index;
     
-  //  assign is_sprite = |index;
     always_comb begin
         red = index[0] ? 4'hf : 4'd0;
         blue = index[2] ? 4'hf : 4'd0;
@@ -79,7 +60,7 @@ module VGA_driver
     logic [11:0] col, next_col;
     logic [10:0] row, next_row;
     logic [3:0] red_value, green_value, blue_value;
-    logic        hor_visible, vert_visible;//, visible;
+    logic        hor_visible, vert_visible;
     logic        HS_l, VS_l;
 
     range_check #(12) hsync(col, 12'd64, 12'd255, HS_l);
