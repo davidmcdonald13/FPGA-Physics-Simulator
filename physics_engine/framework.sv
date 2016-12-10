@@ -50,7 +50,7 @@ module physics_engine
            
   // assign collision_out = 0;
            
-    assign collision = collision_out;
+   // assign collision = collision_out;
            
     assign next_counter = (counter == 22'd2_699_999) ? 'd0 : counter + 'd1;
     assign next_small_counter = small_counter + 'd1;
@@ -65,6 +65,7 @@ module physics_engine
     end
 
     always_ff @(posedge clk_162) begin
+        collision <= 0;
         if (~rst_l) begin
             locations <= 'd0;
             velo_reg <= 'd0;
@@ -79,6 +80,7 @@ module physics_engine
             small_counter <= next_small_counter;
             sprite_index <= next_sprite_index;
             if (counter == 22'd2_699_999) begin
+                collision <= collision_out;
                 locations <= calc_locations;
                 velo_reg <= col_velos;
                 small_counter <= 'd0;

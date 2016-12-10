@@ -5,7 +5,7 @@ module top
    (input logic BTND, BTNU, //BTNL,
     input logic CLK100MHZ,
     input logic [15:0] SW,
-    output logic VGA_HS, VGA_VS,
+    output logic VGA_HS, VGA_VS, AUD_PWM, AUD_SD,
     output logic [3:0] VGA_R, VGA_B, VGA_G);
     
     logic clk_out1, locked;
@@ -23,6 +23,17 @@ module top
     initial_selector #(SPRITES) is(SW, init_locations, init_velos);
    /* assign init_locations = {32'h0, 32'hff00_0000, 32'h0, 32'h100_0000};
     assign init_velos = 'd0;*/
+    
+    play_tone (clk_out1, collision, 1'b1, AUD_PWM, AUD_SD);
+    
+    
+    
+    /*module play_tone(
+        input logic CLK100MHZ, BTND,
+        input logic [0:0] SW, 
+        output logic AUD_PWM,
+        output logic AUD_SD
+        );*/
         
     clk_wiz_0 clk(.CLK100MHZ(CLK100MHZ), .clk_out1(clk_out1), .reset(BTND), .locked(locked));
 
@@ -64,6 +75,47 @@ module initial_selector
                 vel[2] = {32'h0010_0000, 32'h0};
                 vel[3] = {32'hfff0_0000, 32'h0};
              end
+             'd2: begin
+                loc[0] = {32'h0100_0000, 32'h0};
+                vel[0] = {32'h0, 32'h0010_0000};
+                loc[1] = {32'hff00_0000, 32'h0};
+                vel[1] = {32'h0, 32'hfff0_0000};
+                loc[2] = {32'h0, 32'h0100_0000};
+                vel[2] = {32'hfff0_0000, 32'h0};
+                loc[3] = {32'h0, 32'hff00_0000};
+                vel[3] = {32'h0010_0000, 32'h0};
+             end
+             'd3: begin
+                 loc[0] = {32'h0100_0000, 32'h0};
+                 vel[0] = {32'h0, 32'hfff0_0000};
+                 loc[1] = {32'hff00_0000, 32'h0};
+                 vel[1] = {32'h0, 32'h0010_0000};
+                 loc[2] = {32'h0, 32'h0100_0000};
+                 vel[2] = {32'h0010_0000, 32'h0};
+                 loc[3] = {32'h0, 32'hff00_0000};
+                 vel[3] = {32'hfff0_0000, 32'h0};
+              end
+              'd4: begin
+                  loc[0] = {32'h0100_0000, 32'h0};
+                  vel[0] = {32'h0, 32'hff00_0000};
+                  loc[1] = {32'hff00_0000, 32'h0};
+                  vel[1] = {32'h0, 32'h0100_0000};
+                  loc[2] = {32'h0, 32'h0100_0000};
+                  vel[2] = {32'h0100_0000, 32'h0};
+                  loc[3] = {32'h0, 32'hff00_0000};
+                  vel[3] = {32'hff00_0000, 32'h0};
+               end
+                'd5: begin
+                    loc[0] = {32'h0100_0000, 32'h0010_0000};
+                    loc[1] = {32'h0100_0000, 32'hfff0_0000};
+                    loc[2] = {32'hff00_0000, 32'h0010_0000};
+                    loc[3] = {32'hff00_0000, 32'hfff0_0000};
+                    vel[0] = {32'h0001_0000, 32'h0010_0000};
+                    vel[1] = {32'h0001_0000, 32'hfff0_0000};
+                    vel[2] = {32'hffff_0000, 32'h0010_0000};
+                    vel[3] = {32'hffff_0000, 32'hfff0_0000};
+                 end
+    
             /*'d1: begin
                 loc[0] = {32'h0, 32'h0100_0000};
                 loc[1] = {32'h0, 32'hff00_0000};
